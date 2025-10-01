@@ -1,0 +1,44 @@
+
+Setup Ollama LLM on local machine
+------------------------------------------------------------------
+	Start Ollama docker's image via Docker Desktop.
+
+	Ollama is a platform/tool that runs LLMs locally (or via Docker) and supports several models.
+	
+	Ollama provides a set of models you can run locally or via their platform. Some common ones include:
+	- llama2
+	- mistral
+	- gemma
+	- starcoder
+	- wizard-llama
+	- vicuna
+
+
+	https://ollama.com/search
+
+
+
+Run a Model (inside container)
+------------------------------------------------------------------
+	docker exec -it ollama ollama run llama2
+or
+	docker exec -it ollama ollama run mistral
+
+
+
+Test the API
+------------------------------------------------------------------
+	curl http://localhost:11434/api/tags	
+	
+	
+	
+Tips
+------------------------------------------------------------------
+	To Remove downloaded models (clean up Ollama's memory/storage)
+		ollama list           # See all downloaded models
+		ollama remove llama2  # Remove the specific model
+
+		docker volume ls
+		docker volume rm ollama_ollama  # Remove volume ollama
+		docker images
+

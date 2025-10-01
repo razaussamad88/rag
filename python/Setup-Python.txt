@@ -1,0 +1,55 @@
+
+[if any python already installed]
+
+Microsoft sometimes install own version of python in WindowsApp.
+winget is required to check the installed versions of Pythons.
+
+install winget from Microsoft Store
+	https://apps.microsoft.com/detail/9nblggh4nns1?hl=en-US&gl=PK
+
+
+run in powershell
+
+	winget --version
+	
+	winget list python
+	
+remove all winget (source) pythons
+	
+	winget uninstall --id Python.Launcher
+	winget uninstall --id Python.Python.3.13
+
+RESTART THE MACHINE
+
+===============================================================================================
+
+[if new python installation]
+
+download the exe and install custom with all features. install in program files.
+https://www.python.org/downloads/windows/
+
+    python --version
+    pip --version
+		
+	where python
+	
+	pyenv global 3.x.x
+	alias python='C:\Program Files\Python313'
+
+===============================================================================================
+
+[VSCode as python IDE installation]
+
+install Python extension by microsoft on vscode.
+
+VSCode won’t install Python for you. If Python isn't found, the extension may prompt you to install it.
+
+or if you have more than one python versions, then in VS Code: Ctrl+Shift+P → "Python: Select Interpreter" → See where it's pointing.
+
+also,
+	Ctrl+Shift+P → "Preferences: Open User Settings (JSON)" → and line for terminal.integrated.defaultProfile.windows
+
+	"terminal.integrated.defaultProfile.windows": "Command Prompt"
+	
+===============================================================================================
+
