@@ -1,92 +1,86 @@
-import openai
-import PyPDF2
-import re
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.llms import OpenAI
-from langchain.vectorstores import FAISS
+import sys
+import os
+from datetime import datetime
+from langchain_community.vectorstores import FAISS
+# from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_ollama import OllamaLLM
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
-import faiss  # Required for FAISS integration in Langchain
-from dotenv import load_dotenv  # Import the dotenv library
-import os  # To access environment variables
+from langchain_core.documents import Document
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-# Load environment variables from the .env file
-load_dotenv()
+print("\r\n\r\n### RAG System Begins...")
+print(f"  * Execution directory: {os.getcwd()}")
 
-# Get the OpenAI API key from environment variables
-openai.api_key = os.getenv("OPENAI_API_KEY")
+current_dir = os.path.dirname(os.path.abspath(__file__))
+print(f"  * Current script directory:", current_dir)
 
-# Function to clean the extracted text
-def clean_text(text):
-    # Remove multiple spaces and replace with a single space
-    text = re.sub(r'\s+', ' ', text)
-    # Remove leading and trailing spaces
-    text = text.strip()
-    # Remove any unwanted characters like page numbers or footers
-    text = re.sub(r'\b(Page \d+|[0-9]+)\b', '', text)
-    return text
+pdf_path = f"{current_dir}/resume.pdf"
+print(f"  * PDF Document Path: '{pdf_path}'")
 
-# Function to extract and clean text from a PDF file
-def extract_and_clean_pdf(pdf_file_path):
-    with open(pdf_file_path, 'rb') as file:
-        reader = PyPDF2.PdfReader(file)
-        text = ""
-        
-        # Loop through all pages and extract text
-        for page_num in range(len(reader.pages)):
-            page = reader.pages[page_num]
-            text += page.extract_text()
-        
-        # Clean the extracted text
-        cleaned_text = clean_text(text)
-        
-        return cleaned_text
+query_file_path = f"{current_dir}/query.txt"
+print(f"  * Query File Path: '{query_file_path}'")
 
-# Extract and clean text from the PDF
-pdf_path = 'example.pdf'  # Replace with the path to your PDF
-cleaned_pdf_text = extract_and_clean_pdf(pdf_path)
+DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
-# Split the cleaned text into chunks (assuming each chunk is a document)
-# For simplicity, split by sentences or paragraphs
-documents = cleaned_pdf_text.split('\n')  # Adjust to better split by paragraphs if needed
 
-# Initialize OpenAI embeddings
-embedding = OpenAIEmbeddings()
 
-# Generate embeddings for the documents (without numpy)
-doc_embeddings = [embedding.embed_text(doc) for doc in documents]
+print(f"[{datetime.now().strftime(DATETIME_FORMAT)}] Query File Loading...")
+with open(query_file_path, "r", encoding="utf-8") as file:
+    query_content = file.read()
+print(f"  * Query: '{query_content}'")
 
-# Create FAISS index (IndexFlatL2 is the simplest FAISS index)
-dimension = len(doc_embeddings[0])  # Length of the embedding vector
-faiss_index = faiss.IndexFlatL2(dimension)
+print(f"[{datetime.now().strftime(DATETIME_FORMAT)}] PDF Loading...")
+# Load your documents from a PDF and chunk for retrieval
+loader = PyPDFLoader(pdf_path)
+pages = loader.load()
 
-# Convert list of embeddings to a list of lists (FAISS accepts list of lists for adding vectors)
-embedding_list = [list(embed) for embed in doc_embeddings]  # No numpy used here
-faiss_index.add(np.array(embedding_list).astype('float32'))  # FAISS still needs float32, but we keep it in list form
+print(f"[{datetime.now().strftime(DATETIME_FORMAT)}] File Splitting...")
+# Split long pages into overlapping chunks for better retrieval
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
+documents = text_splitter.split_documents(pages)
 
-# Create FAISS vector store
-vectorstore = FAISS(faiss_index)
 
-# Initialize OpenAI LLM (Large Language Model)
-llm = OpenAI(model="text-davinci-003", temperature=0.7)
+## Convert the documents to embeddings (Ensure correct formatting for FAISS) ##
 
-# Define the prompt template
+print(f"[{datetime.now().strftime(DATETIME_FORMAT)}] Embedding...")
+# Local embeddings using Hugging Face model
+doc_embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+
+print(f"[{datetime.now().strftime(DATETIME_FORMAT)}] Creating in-memory Vector Store...")
+# Create the FAISS vector store using the embeddings
+vectorstore = FAISS.from_documents(documents, doc_embeddings)
+
+# Local LLM using Ollama (must be installed and running a model like mistral)
+llm = OllamaLLM(model="mistral")
+
+# Define a prompt template for generating responses
 template = "Given the following context, answer the user's question:\n\n{context}\n\nUser: {question}\nAnswer:"
 prompt = PromptTemplate(input_variables=["context", "question"], template=template)
 
-# Set up the RetrievalQA chain
+print(f"[{datetime.now().strftime(DATETIME_FORMAT)}] Setting up retrieval-based QA system...")
+# Set up the retrieval-based QA system using Langchain
 qa_chain = RetrievalQA.from_chain_type(
-    llm=llm,
-    retriever=vectorstore.as_retriever(),
-    chain_type="stuff",
+    llm=llm, 
+    retriever=vectorstore.as_retriever(), 
+    chain_type="stuff", 
+    chain_type_kwargs={"prompt": prompt},
     verbose=True
 )
 
-# Example query
-user_query = "What is Langchain?"
+# Example user query
+# user_query = "What is the person's name? What are his skill set in detail? Does this candidate a good option for managerial role or for software arhitect position?"
+user_query = query_content
 
+# if needed for dev, Successful exit before invoking RAG
+#sys.exit(0)
+
+print(f"[{datetime.now().strftime(DATETIME_FORMAT)}] Invoking the RAG system...")
 # Run the RAG system to get the response
-response = qa_chain.run(user_query)
+response = qa_chain.invoke({"query": user_query})
 
-# Print the response
-print("Response:", response)
+# Output the generated answer
+print(f"[{datetime.now().strftime(DATETIME_FORMAT)}] Response:", response)
+print("\r\n\r\n\r\n### RAG System Finished!")
