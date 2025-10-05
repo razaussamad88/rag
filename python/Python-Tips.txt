@@ -68,8 +68,10 @@ pip install -U langchain-huggingface
 pip install -U langchain-ollama
 
 
+run docker container for Ollama before executing
+  e.g.  docker start <container_id>
+        I already ran container, so my container id for ollama is 5b836dede0c1
 
-python "G:\My Drive\!..~ Development ~..!\Python\RAG\program.py"
-
+docker start 5b836dede0c1
 python E:\my_github_repos\rag\first-rag-app\program.py
 
