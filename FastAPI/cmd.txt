@@ -1,0 +1,84 @@
+
+
+pip install fastapi uvicorn
+pip install python-multipart
+
+check
+	pip show fastapi
+	pip show uvicorn
+
+
+
+
+command to execute the FastAPI
+-------------------------------------------------------------	
+	uvicorn app:app --reload
+	or
+	uvicorn <python_file_without_.py>:<fastapi_instance_name> --reload
+
+	uvicorn program.py:app --reload
+	
+	or
+
+	
+	[this is working for me]
+		python -m uvicorn program:app --reload
+	here,
+		program = your filename program.py (without .py)
+		app = your FastAPI instance variable inside the file (app = FastAPI())
+	
+		or
+		
+		python -m uvicorn program:app --reload --port 9000
+		(9000 is port)
+		
+	
+	swagger link available to visit for API Test.
+	http://127.0.0.1:8000/docs
+	
+	
+	The 8000 is just the default port that Uvicorn (the FastAPI server) uses when you run.
+
+-------------------------------------------------------------	
+
+		python -m uvicorn program:app --reload --port 8000
+		
+		{"question":"What is Langchain?"}
+
+		
+
+		python -m uvicorn program-pdf:app --reload --port 9000
+		
+		
+		{"question":"What are the skills of the candidate?"}
+
+-------------------------------------------------------------	
+
+Text based
+	curl -X POST "http://127.0.0.1:8000/ask" -H "Content-Type: application/json" -d '{"question":"What is Langchain?"}'
+
+
+PDF based
+	curl -X POST "http://127.0.0.1:8000/upload-pdf" -F "file=@resume.pdf"
+
+	curl -X POST "http://127.0.0.1:8000/ask" -H "Content-Type: application/json" -d '{"question":"What are the skills of the candidate?"}'
+
+
+
+--------------------------------------------------------------
+
+✅ Run Uvicorn inside Python code
+
+Instead of starting with command line, you can add this to the bottom of your program.py:
+
+	if __name__ == "__main__":
+		import uvicorn
+		uvicorn.run("program:app", host="127.0.0.1", port=9000, reload=True)
+
+
+Then you can just do:
+
+	python program.py
+
+
+And it will run on port 9000 automatically. there is no performance difference.
